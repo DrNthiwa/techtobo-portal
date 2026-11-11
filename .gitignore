@@ -1,0 +1,8 @@
+data/
+.Renviron
+*.json
+!manifest.json
+.Rhistory
+.RData
+.Rproj.user/
+rsconnect/

@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&family=Inter:wght@400;600&display=swap');
+body { font-family: 'Inter', Arial, sans-serif; color: #222; padding: 0 !important; }
+.container-fluid { padding: 0 !important; }
+h1, h2, h5, h6 { font-family: 'Poppins', Arial, sans-serif; color: #0B2545; font-weight: 700; }
+.topbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 28px; border-bottom: 3px solid #F5A300; background: #fff; flex-wrap: wrap; gap: 8px; }
+.topbar a { margin-right: 20px; color: #0B2545; text-decoration: none; font-weight: 600; }
+.topbar.dark { background: #0B2545; color: #fff; }
+.hero { background: #0B2545; color: #fff; padding: 70px 28px 76px; }
+.hero h1 { color: #fff; font-size: 2.6rem; max-width: 720px; }
+.hero .lead { color: #F5A300; font-weight: 600; }
+.hero .btn { font-weight: 700; color: #0B2545; margin-top: 8px; }
+.section { padding: 48px 28px; max-width: 1180px; margin: 0 auto; }
+.section.alt { max-width: none; background: #EEF1F4; }
+.section.alt > * { max-width: 1124px; margin-left: auto; margin-right: auto; }
+.section h2 { margin-bottom: 22px; }
+.svc { background: #fff; border: 1px solid #C9D1DA; border-top: 4px solid #0B2545; border-radius: 6px; padding: 16px 18px; height: 100%; }
+.svc h5 { font-size: 1rem; } .svc p { margin: 0; color: #5C6B7A; font-size: .92rem; }
+.foot { background: #0B2545; color: #C9D1DA; text-align: center; padding: 16px; font-size: .85rem; }
+.portal { padding: 18px 28px 40px; }
+.portal .tab-content { padding-top: 18px; }
+.kpi { border: 1px solid #C9D1DA; border-left: 5px solid #0B2545; border-radius: 6px; padding: 14px 16px; background: #fff; }
+.kpi.amber { border-left-color: #F5A300; }
+.kpi-v { font-family: 'Poppins', Arial, sans-serif; font-size: 1.5rem; font-weight: 700; color: #0B2545; }
+.kpi-t { color: #5C6B7A; font-size: .85rem; }
+.totals { text-align: right; margin-top: 10px; } .totals span { margin-left: 26px; }
+.totals .grand { background: #0B2545; color: #fff; padding: 6px 12px; border-radius: 4px; }
+table.dataTable thead th { background: #0B2545; color: #fff; }
