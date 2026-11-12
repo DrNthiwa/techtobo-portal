@@ -92,3 +92,8 @@ next_no <- function(prefix, existing, date = Sys.Date()) {
   n <- if (length(used)) max(num(sub(stem, "", used, fixed = TRUE))) else 0
   sprintf("%s%03d", stem, n + 1)
 }
+
+# Small UI helpers shared by app.R and the modules in R/
+sel_in <- function(...) shiny::selectInput(..., selectize = FALSE)
+named <- function(values, labels) if (length(values)) setNames(values, labels) else character(0)
+safe_date <- function(x) tryCatch(as.Date(x), error = function(e) as.Date(NA))

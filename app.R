@@ -111,6 +111,7 @@ portal_ui <- function(u) {
     if (director) nav_panel("Clients",
       div(class = "mb-2", actionButton("cl_add", "Add client", class = "btn-primary btn-sm"),
           actionButton("cl_edit", "Edit selected client", class = "btn-outline-primary btn-sm")), DTOutput("cl_tbl")),
+    if (director) nav_panel("Property Management", pm_ui()),
     if (director) nav_panel("Settings",
       layout_columns(col_widths = c(6, 6),
         card(card_header("Company and tax"), uiOutput("set_ui"), actionButton("set_save", "Save settings", class = "btn-primary btn-sm"),
@@ -136,7 +137,7 @@ portal_ui <- function(u) {
 server <- function(input, output, session) {
   user <- reactiveVal(NULL)
   rv <- reactiveValues()
-  load_all <- function() for (t in names(SCHEMA)) rv[[t]] <- db_read(t)
+  load_all <- function() for (t in setdiff(names(SCHEMA), names(PM_SCHEMA))) rv[[t]] <- db_read(t)   # property tables load for administrators only
   load_all()
   change <- function(tbl, fn) rv[[tbl]] <- db_change(tbl, fn)
   st <- reactive(setNames(rv$settings$value, rv$settings$key))
@@ -481,6 +482,9 @@ server <- function(input, output, session) {
   observeEvent(input$us_toggle, { req(need_dir()); u <- sel("us_tbl", users_view()); if (is.null(u)) return()
     if (u$username == user()$username) return(output$us_msg <- renderText("You cannot deactivate your own account."))
     change("users", function(d) { i <- d$username == u$username; d$active[i] <- if (d$active[i] == "Yes") "No" else "Yes"; d }) })
+
+  # ---- property management module (R/property.R); administrators only
+  pm_server(input, output, session, rv, user, is_dir, need_dir, change, st)
 }
 
 shinyApp(ui, server)

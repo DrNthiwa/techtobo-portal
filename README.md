@@ -76,6 +76,44 @@ Restart R and run the app again.
 5. **Receipts:** when Jalisa pays, record the payment against the invoice. The invoice and job are marked Paid when the balance reaches zero, and you can download a receipt PDF.
 6. **Settings:** fill in the KRA PIN, bank and M-Pesa details once. Set **VAT-registered** to Yes only if the company has a VAT obligation on iTax; new documents then add VAT at the rate shown.
 
+## Property Management module
+
+Visible to administrators only (checked on the server for every action, not just hidden from the menu). Sub-tabs:
+
+| Tab | Use |
+|---|---|
+| Overview | Totals for a chosen period, and current outstanding balances |
+| Properties and tenants | Register and edit properties, their rental units, and tenants. One active tenant per unit. A tenant who leaves is set to Inactive and their records are kept |
+| Rent Management | Generate the month's rent charges, adjust one tenant's rent for a month, see paid / partially paid / unpaid |
+| Electricity Management | Token value and unit price per unit per month; the total is calculated (token value x unit price) |
+| Water Management | Meter readings and price per unit (units = current - previous), or a fixed monthly charge |
+| Invoices | Preview, then issue, one invoice per tenant per month combining rent, electricity, water and any previous balance. Individually or for all active tenants. PDF download, cancellation |
+| Payments and receipts | Record full or part payments against an invoice; each payment gets its own receipt PDF. Reverse a payment recorded in error |
+| History and reports | Month-by-month record per property or tenant; download as Excel or PDF |
+| Audit trail | Every registration, change, invoice, cancellation, payment and reversal, with user and time |
+
+Monthly routine: enter electricity and water for the month, open Invoices, choose the month, Preview, check, Issue. When a tenant pays, record it under Payments and receipts and download the receipt.
+
+Rules the module enforces:
+
+- Numbers are unique and never reused: invoices PINV-YYYY-NNN, payments PAY-YYYY-NNN, receipts RCPT-YYYY-NNN.
+- An issued invoice is never edited, and its charges are locked. An invoice with no payments can be cancelled (with a reason) and reissued; it stays on record as Cancelled.
+- Payments are never deleted. A wrong payment is reversed (with a reason) and stays on record.
+- An unpaid balance is carried into the tenant's next invoice. The older invoice then shows "Carried Forward" and further payments go against the latest invoice. When the latest invoice is paid in full, the older ones show "Settled".
+- A payment cannot exceed the invoice balance. A transaction code that has been used before is refused unless you tick the box to confirm it is a different payment.
+- A payment not marked for rent, electricity or water is applied to the oldest debt first: previous balance, then rent, electricity, water.
+
+Data: seven new tabs in the Google Sheet, created automatically: pm_properties, pm_units, pm_tenants, pm_charges, pm_invoices, pm_payments, pm_audit. Do not edit these by hand.
+
+Excel reports need the `writexl` package (`install.packages("writexl")`), then recreate the manifest before pushing:
+
+```r
+rsconnect::writeManifest(appFiles = c("app.R", "README.md", list.files("R", full.names = TRUE),
+                                      list.files("www", full.names = TRUE, recursive = TRUE)))
+```
+
+Without `writexl` the Excel button downloads a CSV file instead.
+
 ## 5. What it does not do yet
 
 - **Direct eTIMS submission.** KRA only allows this through certified OSCU or VSCU integration. The portal is built so this can be added later without changing how you work.
@@ -91,6 +129,8 @@ Restart R and run the app again.
 | `R/config.R` | Company details, service list, statuses, data columns |
 | `R/storage.R` | Reads and writes records (Google Sheet or local CSV) |
 | `R/pdf.R` | Draws the quotation, invoice and receipt PDFs |
+| `R/property.R` | Property Management module: screens, calculations and rules |
+| `R/property_pdf.R` | Property invoice, receipt and report PDFs |
 | `www/` | Logos and styling |
 
 Company details printed on documents (address, phone, email, company number) are in `R/config.R`.

@@ -44,3 +44,12 @@ table.dataTable thead th { background: #0B2545; color: #fff; }
   .section { padding: 34px 16px; } .portal { padding: 12px 12px 30px; }
   .totals span { display: block; margin: 4px 0 0; }
 }
+
+/* --- added: property management --- */
+.pm-badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: .78rem; font-weight: 600; white-space: nowrap; }
+.pm-badge.ok { background: #DDF2E3; color: #17603A; } .pm-badge.part { background: #FFF0CC; color: #7A5200; }
+.pm-badge.bad { background: #FBDDDD; color: #8C1D1D; } .pm-badge.warn { background: #E3E8F4; color: #0B2545; }
+.pm-badge.mute { background: #EEF1F4; color: #5C6B7A; }
+.pm-calc { background: #EEF1F4; border-left: 4px solid #F5A300; border-radius: 4px; padding: 8px 14px; margin: 4px 0 12px; font-weight: 600; color: #0B2545; }
+.pm-preview { border: 1px dashed #5C6B7A; border-radius: 6px; padding: 12px 14px; margin-top: 8px; background: #FAFBFC; }
+#pm_tabs { margin-bottom: 4px; } #pm_tabs .nav-link { padding: 5px 12px; font-size: .9rem; }
