@@ -1784,10 +1784,10 @@
   },
   "files": {
     "app.R": {
-      "checksum": "9b6cb3b8d17704324624dfd457bbb88c"
+      "checksum": "ffdc0eff8aaca1e867d2f6df6242b96d"
     },
     "R/config.R": {
-      "checksum": "136991378710932c2b8981f152c5790a"
+      "checksum": "82411ed83d0734ae460f3703bf816109"
     },
     "R/pdf.R": {
       "checksum": "a1c07ed2dbfcefbffb42f09183943e80"
@@ -1796,7 +1796,7 @@
       "checksum": "47f4e0176181f258fd04b925b66f239d"
     },
     "README.md": {
-      "checksum": "675440054426d2dfc3f994d48419a355"
+      "checksum": "197a402b0909ff6e3a501c2209bb4187"
     },
     "www/icon.png": {
       "checksum": "ed2795c5412ea262df488ce208e805be"
@@ -1808,7 +1808,7 @@
       "checksum": "79c39bc6eac9c88b2d3acb9c7f6c83eb"
     },
     "www/styles.css": {
-      "checksum": "5b61a42169f1a41bfcf3216256b2646d"
+      "checksum": "5544286a9609eeafdc36b537843a19f6"
     }
   },
   "users": null

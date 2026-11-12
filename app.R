@@ -23,13 +23,19 @@ safe_date <- function(x) tryCatch(as.Date(x), error = function(e) as.Date(NA))
 public_ui <- function() {
   svc <- lapply(names(SERVICES), function(s) div(class = "col-md-4 col-sm-6",
     div(class = "svc", h5(s), p(SERVICES[[s]]))))
+  clients <- lapply(PUBLIC_CLIENTS, function(cl) div(class = "col-md-3 col-sm-6",
+    div(class = "client-card",
+        if (!is.null(cl$logo) && file.exists(file.path("www", cl$logo))) img(src = cl$logo, alt = cl$name, class = "client-logo")
+        else div(class = "client-mark", toupper(substr(cl$name, 1, 1))),
+        div(class = "client-name", cl$name))))
   tagList(
     div(class = "topbar", img(src = "logo.png", height = 52),
-        div(a(href = "#services", "Services"), a(href = "#about", "About"), a(href = "#contact", "Contact"),
-            actionButton("show_login", "Portal login", class = "btn-primary btn-sm"))),
-    div(class = "hero", h1("One team for every technical job."), p(class = "lead", COMPANY$tagline),
+        div(a(href = "#services", "Services"), a(href = "#about", "About"), a(href = "#clients", "Clients"), a(href = "#contact", "Contact"),
+            actionButton("show_login", "Log in", class = "btn-primary btn-sm"),
+            actionButton("show_signup", "Sign up", class = "btn-outline-primary btn-sm"))),
+    div(class = "hero", h1("One team for every technical job"), p(class = "lead", sub("\\.$", "", COMPANY$tagline)),
         p("Repairs, maintenance and installation for commercial, industrial and residential premises in Kenya."),
-        a(href = "#contact", class = "btn btn-warning", "Request a quotation")),
+        actionButton("show_quote", "Request a quotation", class = "btn-warning")),
     div(class = "section", id = "services", h2("Our services"), div(class = "row g-3", svc)),
     div(class = "section alt", id = "about", h2("About us"),
         p("Techtobo General Limited is a Kenyan private limited company providing technical, maintenance, repair and installation services. ",
@@ -38,10 +44,11 @@ public_ui <- function() {
             div(class = "col-md-4", div(class = "svc", h5("Clear documentation"), p("Every job is recorded from request to invoice: quotation, work order, completion report and invoice."))),
             div(class = "col-md-4", div(class = "svc", h5("Transparent pricing"), p("Itemised quotations and invoices that show labour and materials separately."))),
             div(class = "col-md-4", div(class = "svc", h5("Quality and safety"), p("Work is done to specification, tested, and signed off by the client before invoicing."))))),
-    div(class = "section", id = "contact", h2("Contact"),
+    div(class = "section", id = "clients", h2("Our Clients"), div(class = "row g-3", clients)),
+    div(class = "section alt", id = "contact", h2("Contact"),
         p(strong("Telephone: "), COMPANY$tel), p(strong("Email: "), a(href = paste0("mailto:", COMPANY$email), COMPANY$email)),
         p(strong("Office: "), COMPANY$address), p(strong("Post: "), COMPANY$box)),
-    div(class = "foot", paste0(COMPANY$name, "  |  Company No. ", COMPANY$number))
+    div(class = "foot", COMPANY$name, span(class = "foot-sep", "|"), actionLink("show_admin_login", "Administrator login"))
   )
 }
 
@@ -57,10 +64,17 @@ line_editor <- function() tagList(
 )
 
 portal_ui <- function(u) {
-  director <- u$role == "director"
+  director <- u$role == "director"; client <- u$role == "client"
   tabs <- list(
     if (director) nav_panel("Dashboard", uiOutput("dash")),
-    nav_panel("Jobs",
+    if (director) nav_panel("Quotation requests",
+      p(class = "text-muted small", "Requests submitted through the website. Select a row to read it in full and update its status."),
+      DTOutput("rq_tbl"), uiOutput("rq_detail"),
+      layout_columns(col_widths = c(3, 6, 3), sel_in("rq_status", "Status", REQ_STATUS), textInput("rq_notes", "Internal notes (not shown to the requester)", width = "100%"),
+        div(style = "margin-top:32px", actionButton("rq_update", "Save changes", class = "btn-outline-primary btn-sm")))),
+    if (!director && !client) nav_panel("My requests",
+      div(class = "mb-2", actionButton("show_quote", "Request a quotation", class = "btn-warning btn-sm")), DTOutput("myrq_tbl")),
+    if (director || client) nav_panel("Jobs",
       if (director) div(class = "mb-2", actionButton("job_add", "Add job", class = "btn-primary btn-sm"),
                         actionButton("job_edit", "Edit selected job", class = "btn-outline-primary btn-sm")),
       DTOutput("jobs_tbl")),
@@ -78,7 +92,7 @@ portal_ui <- function(u) {
                        div(style = "margin-top:32px", actionButton("d_copy", "Copy lines from quotation", class = "btn-outline-primary btn-sm")), div())),
       hr(), line_editor(), hr(),
       actionButton("d_save", "Save document", class = "btn-warning"), span(class = "ms-3 text-muted", textOutput("d_msg", inline = TRUE))),
-    nav_panel(if (director) "Documents" else "Quotations and invoices",
+    if (director || client) nav_panel(if (director) "Documents" else "Quotations and invoices",
       DTOutput("docs_tbl"),
       div(class = "mt-2", downloadButton("doc_pdf_dl", "Download PDF of selected", class = "btn-primary btn-sm")),
       if (director) tagList(hr(), h6("Update selected document"),
@@ -92,6 +106,8 @@ portal_ui <- function(u) {
         textInput("rc_ref", "Reference (e.g. M-Pesa code)")),
       actionButton("rc_save", "Record payment", class = "btn-warning btn-sm"), span(class = "ms-3 text-muted", textOutput("rc_msg", inline = TRUE)),
       hr(), DTOutput("rc_tbl"), div(class = "mt-2", downloadButton("rc_pdf_dl", "Download receipt PDF of selected", class = "btn-primary btn-sm"))),
+    if (client) nav_panel("My requests",
+      div(class = "mb-2", actionButton("show_quote", "Request a quotation", class = "btn-warning btn-sm")), DTOutput("myrq_tbl")),
     if (director) nav_panel("Clients",
       div(class = "mb-2", actionButton("cl_add", "Add client", class = "btn-primary btn-sm"),
           actionButton("cl_edit", "Edit selected client", class = "btn-outline-primary btn-sm")), DTOutput("cl_tbl")),
@@ -101,15 +117,15 @@ portal_ui <- function(u) {
              textOutput("set_msg")),
         card(card_header("Portal users"), DTOutput("us_tbl"),
           layout_columns(col_widths = c(6, 6), textInput("us_user", "Username"), textInput("us_name", "Full name")),
-          layout_columns(col_widths = c(4, 4, 4), sel_in("us_role", "Role", c("Director" = "director", "Client (read-only)" = "client")),
-                         uiOutput("us_client_ui"), passwordInput("us_pw", "Password (min 8)")),
-          div(actionButton("us_add", "Add user / reset password", class = "btn-primary btn-sm"),
+          layout_columns(col_widths = c(4, 4, 4), sel_in("us_role", "Role", c("Administrator" = "director", "Client (read-only)" = "client", "User" = "user")),
+                         uiOutput("us_client_ui"), passwordInput("us_pw", "Password (min 8; blank keeps current)")),
+          div(actionButton("us_add", "Add or update user", class = "btn-primary btn-sm"),
               actionButton("us_toggle", "Activate / deactivate selected", class = "btn-outline-secondary btn-sm")),
           textOutput("us_msg"))))
   )
   tagList(
     div(class = "topbar dark", img(src = "logo_reversed.png", height = 46),
-        div(span(class = "me-3", paste0(u$name, " (", if (director) "Director" else u$client, ")")),
+        div(span(class = "me-3", paste0(u$name, " (", if (client) u$client else ROLE_LABELS[[u$role]], ")")),
             actionButton("refresh", "Refresh data", class = "btn-outline-light btn-sm"),
             actionButton("logout", "Log out", class = "btn-warning btn-sm"))),
     div(class = "portal", do.call(navset_underline, c(Filter(Negate(is.null), tabs), list(id = "tabs"))))
@@ -125,42 +141,143 @@ server <- function(input, output, session) {
   change <- function(tbl, fn) rv[[tbl]] <- db_change(tbl, fn)
   st <- reactive(setNames(rv$settings$value, rv$settings$key))
   is_dir <- reactive(!is.null(user()) && user()$role == "director")
-  need_dir <- function() if (!is_dir()) { showNotification("Directors only.", type = "error"); FALSE } else TRUE
+  need_dir <- function() if (!is_dir()) { showNotification("Administrators only.", type = "error"); FALSE } else TRUE
   # Rows visible to the logged-in user (clients see only their own records)
-  vis <- function(df) { u <- user(); if (is.null(u)) return(df[0, ]); if (u$role == "director") df else df[df$client == u$client, , drop = FALSE] }
+  vis <- function(df) { u <- user(); if (is.null(u)) return(df[0, ])
+    if (u$role == "director") df else if (u$role == "client" && nzchar(u$client)) df[df$client == u$client, , drop = FALSE] else df[0, , drop = FALSE] }
   dt <- function(df, ...) datatable(df, selection = "single", rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE), ...)
   sel <- function(id, df) { i <- input[[paste0(id, "_rows_selected")]]; if (length(i) == 1 && i <= nrow(df)) df[i, , drop = FALSE] else NULL }
 
   output$root <- renderUI(if (is.null(user())) public_ui() else portal_ui(user()))
 
-  # ---- login / first account
-  observeEvent(input$show_login, {
-    first <- nrow(rv$users) == 0
+  # ---- login (general and administrator), first administrator account
+  login_mode <- reactiveVal("user"); fails <- reactiveVal(0)
+  no_admin <- function(users) !any(users$role == "director" & users$active == "Yes")
+  login_modal <- function(admin) {
+    login_mode(if (admin) "admin" else "user"); output$lg_msg <- renderText("")
+    first <- no_admin(rv$users)
     can_setup <- BACKEND == "local" || nzchar(Sys.getenv("TECHTOBO_SETUP_KEY"))
-    showModal(modalDialog(title = if (first) "Create the first director account" else "Portal login", easyClose = TRUE,
-      if (first && !can_setup) p("No accounts exist yet. Set the TECHTOBO_SETUP_KEY secret on the server to enable first-time setup (see README).")
+    showModal(modalDialog(title = if (first) "Create the first administrator account" else if (admin) "Administrator login" else "Log in", easyClose = TRUE,
+      if (first && !can_setup) p("No administrator account exists yet. Set the TECHTOBO_SETUP_KEY secret on the server to enable first-time setup (see README).")
       else tagList(
-        if (first) textInput("lg_name", "Full name"),
-        textInput("lg_user", "Username"), passwordInput("lg_pw", if (first) "Password (min 8 characters)" else "Password"),
-        if (first && BACKEND != "local") passwordInput("lg_key", "Setup key"),
-        div(class = "text-danger", textOutput("lg_msg"))),
+        if (first) textInput("lg_name", "Full name", width = "100%"),
+        textInput("lg_user", if (first) "Username" else "Username or email", width = "100%"),
+        passwordInput("lg_pw", if (first) "Password (min 8 characters)" else "Password", width = "100%"),
+        if (first && BACKEND != "local") passwordInput("lg_key", "Setup key", width = "100%"),
+        div(class = "text-danger", textOutput("lg_msg")),
+        if (!first && !admin) p(class = "small mt-2 mb-0", "New here? ", actionLink("lg_to_signup", "Create an account"))),
       footer = tagList(modalButton("Cancel"), actionButton("lg_go", if (first) "Create account" else "Log in", class = "btn-primary"))))
-  })
+  }
+  observeEvent(input$show_login, login_modal(FALSE))
+  observeEvent(input$show_admin_login, login_modal(TRUE))
+  sign_in <- function(u) { removeModal(); load_all(); fails(0)
+    user(as.list(u[1, c("username", "name", "role", "client", "email", "phone", "company")])) }
   observeEvent(input$lg_go, {
+    if (fails() >= 5) { output$lg_msg <- renderText("Too many failed attempts. Reload the page and try again later."); return() }
     un <- tolower(trimws(input$lg_user %||% "")); pw <- input$lg_pw %||% ""
     users <- db_read("users"); rv$users <- users
-    if (nrow(users) == 0) {
+    if (no_admin(users)) {
       if (BACKEND != "local" && !identical(input$lg_key, Sys.getenv("TECHTOBO_SETUP_KEY"))) { output$lg_msg <- renderText("Wrong setup key."); return() }
       if (!nzchar(un) || nchar(pw) < 8) { output$lg_msg <- renderText("Enter a username and a password of at least 8 characters."); return() }
-      change("users", function(d) rbind(d, row_df("users", username = un, name = input$lg_name %||% un, role = "director", client = "",
-                                                   password_hash = sodium::password_store(pw), active = "Yes")))
+      if (un %in% users$username) { output$lg_msg <- renderText("That username is already taken."); return() }
+      change("users", function(d) rbind(d, row_df("users", username = un, name = clip(input$lg_name, 80) %||% un, role = "director", client = "",
+                                                   password_hash = sodium::password_store(pw), active = "Yes", created_at = now_str())))
       users <- rv$users
     }
-    u <- users[users$username == un & users$active == "Yes", , drop = FALSE]
-    ok <- nrow(u) == 1 && isTRUE(tryCatch(sodium::password_verify(u$password_hash, pw), error = function(e) FALSE))
-    if (!ok) { Sys.sleep(1); output$lg_msg <- renderText("Incorrect username or password."); return() }
-    removeModal(); load_all(); user(as.list(u[1, c("username", "name", "role", "client")]))
+    u <- users[(users$username == un | (nzchar(users$email) & tolower(users$email) == un)) & users$active == "Yes", , drop = FALSE]
+    ok <- nzchar(un) && nrow(u) == 1 && isTRUE(tryCatch(sodium::password_verify(u$password_hash, pw), error = function(e) FALSE))
+    if (ok && login_mode() == "admin" && u$role != "director") ok <- FALSE   # administrator login accepts administrators only
+    if (!ok) { Sys.sleep(1); fails(fails() + 1); output$lg_msg <- renderText("Incorrect username or password."); return() }
+    sign_in(u)
   })
+
+  # ---- self sign-up for general users
+  signups <- reactiveVal(0)
+  signup_modal <- function() { output$su_msg <- renderText("")
+    showModal(modalDialog(title = "Create an account", easyClose = TRUE,
+      p(class = "text-muted small", "An account lets you request quotations and follow their progress."),
+      textInput("su_name", "Full name", width = "100%"), textInput("su_company", "Company / organisation (optional)", width = "100%"),
+      textInput("su_email", "Email address (this is your login)", width = "100%"), textInput("su_phone", "Telephone number", width = "100%"),
+      passwordInput("su_pw", "Password (min 8 characters)", width = "100%"), passwordInput("su_pw2", "Confirm password", width = "100%"),
+      div(class = "text-danger", textOutput("su_msg")),
+      footer = tagList(modalButton("Cancel"), actionButton("su_go", "Create account", class = "btn-primary")))) }
+  observeEvent(input$show_signup, signup_modal())
+  observeEvent(input$lg_to_signup, signup_modal())
+  observeEvent(input$su_go, {
+    bad <- function(m) { output$su_msg <- renderText(m); NULL }
+    nm <- clip(input$su_name, 80); em <- tolower(clip(input$su_email, 120)); ph <- clip(input$su_phone, 30); pw <- input$su_pw %||% ""
+    if (signups() >= 2) return(bad("An account was already created in this session. Please log in."))
+    if (!nzchar(nm)) return(bad("Enter your full name."))
+    if (!valid_email(em)) return(bad("Enter a valid email address."))
+    if (nchar(gsub("[^0-9]", "", ph)) < 7) return(bad("Enter a valid telephone number."))
+    if (nchar(pw) < 8) return(bad("The password must be at least 8 characters."))
+    if (!identical(pw, input$su_pw2 %||% "")) return(bad("The two passwords do not match."))
+    users <- db_read("users")
+    if (em %in% users$username || em %in% tolower(users$email)) return(bad("An account with this email already exists. Please log in instead."))
+    change("users", function(d) rbind(d, row_df("users", username = em, name = nm, role = "user", client = "", password_hash = sodium::password_store(pw),
+                                                 active = "Yes", email = em, phone = ph, company = clip(input$su_company, 120), created_at = now_str())))
+    signups(signups() + 1)
+    sign_in(rv$users[rv$users$username == em, , drop = FALSE])
+    showNotification("Account created. You are now logged in.")
+  })
+
+  # ---- request a quotation (public visitors and logged-in users)
+  rq_count <- reactiveVal(0)
+  observeEvent(input$show_quote, { output$rq_msg <- renderText("")
+    u <- user(); g <- function(f) if (is.null(u)) "" else (u[[f]] %||% "")
+    showModal(modalDialog(title = "Request a quotation", size = "l", easyClose = FALSE,
+      layout_columns(col_widths = c(6, 6), textInput("rq_name", "Your name", g("name"), width = "100%"),
+        textInput("rq_company", "Company / organisation", if (!is.null(u) && u$role == "client") u$client else g("company"), width = "100%")),
+      layout_columns(col_widths = c(6, 6), textInput("rq_email", "Email address", g("email"), width = "100%"), textInput("rq_phone", "Telephone number", g("phone"), width = "100%")),
+      layout_columns(col_widths = c(6, 6), sel_in("rq_service", "Service required", c(names(SERVICES), "Other / not sure"), width = "100%"),
+        textInput("rq_time", "Preferred date or timeframe", placeholder = "e.g. 20 November, or within two weeks", width = "100%")),
+      textAreaInput("rq_desc", "Describe the work you need done", rows = 4, width = "100%"),
+      div(class = "hp", `aria-hidden` = "true", textInput("rq_website", "Leave this field empty")),
+      div(class = "text-danger", textOutput("rq_msg")),
+      footer = tagList(modalButton("Cancel"), actionButton("rq_go", "Submit request", class = "btn-warning"))))
+  })
+  observeEvent(input$rq_go, {
+    bad <- function(m) { output$rq_msg <- renderText(m); NULL }
+    nm <- clip(input$rq_name, 80); em <- tolower(clip(input$rq_email, 120)); ph <- clip(input$rq_phone, 30); ds <- clip(input$rq_desc, 2000)
+    if (!nzchar(nm)) return(bad("Enter your name."))
+    if (!valid_email(em)) return(bad("Enter a valid email address."))
+    if (nchar(gsub("[^0-9]", "", ph)) < 7) return(bad("Enter a valid telephone number."))
+    if (nchar(ds) < 10) return(bad("Describe the work you need done (at least a short sentence)."))
+    if (rq_count() >= 3) return(bad("You have submitted several requests in this visit. Please contact us directly for anything further."))
+    no <- NULL; at <- now_str()
+    if (!nzchar(input$rq_website %||% "")) {   # the hidden field is only ever filled in by automated spam
+      change("requests", function(d) { no <<- next_no("REQ", d$request_no)
+        rbind(d, row_df("requests", request_no = no, submitted_at = at, name = nm, company = clip(input$rq_company, 120), email = em, phone = ph,
+                        service = input$rq_service %||% "", description = ds, timeframe = clip(input$rq_time, 120), status = "New",
+                        username = if (is.null(user())) "" else user()$username, admin_notes = "")) })
+    }
+    rq_count(rq_count() + 1)
+    showModal(modalDialog(title = "Request received", easyClose = TRUE,
+      p("Thank you, ", nm, ". Your quotation request has been received", if (!is.null(no)) tagList(" under reference ", strong(no)), "."),
+      p("Submitted on ", nice_date(substr(at, 1, 10)), " at ", substr(at, 12, 16), " (East Africa Time). We will contact you on ", em, " or ", ph, "."),
+      footer = modalButton("Close")))
+  })
+
+  # ---- quotation requests: administrator view
+  rq_view <- reactive(rv$requests[order(rv$requests$request_no, decreasing = TRUE),
+    c("request_no", "submitted_at", "name", "company", "email", "phone", "service", "timeframe", "status", "description", "admin_notes")])
+  output$rq_tbl <- renderDT({ req(is_dir()); d <- rq_view(); d$description <- ifelse(nchar(d$description) > 60, paste0(substr(d$description, 1, 60), "..."), d$description); dt(d) })
+  output$rq_detail <- renderUI({ req(is_dir()); r <- sel("rq_tbl", rq_view()); if (is.null(r)) return(NULL)
+    div(class = "rq-detail", h6(paste0(r$request_no, ": ", r$service)),
+        p(strong(r$name), if (nzchar(r$company)) paste0(", ", r$company), " | ", r$email, " | ", r$phone),
+        p(strong("Preferred timeframe: "), if (nzchar(r$timeframe)) r$timeframe else "not stated", " | ", strong("Submitted: "), r$submitted_at),
+        p(r$description)) })
+  observeEvent(input$rq_tbl_rows_selected, { r <- sel("rq_tbl", rq_view()); req(r, is_dir())
+    updateSelectInput(session, "rq_status", selected = r$status); updateTextInput(session, "rq_notes", value = r$admin_notes) })
+  observeEvent(input$rq_update, { req(need_dir()); r <- sel("rq_tbl", rq_view())
+    if (is.null(r)) return(showNotification("Select a request first.", type = "warning"))
+    change("requests", function(d) { i <- d$request_no == r$request_no; d$status[i] <- input$rq_status; d$admin_notes[i] <- clip(input$rq_notes, 500); d })
+    showNotification("Request updated.") })
+
+  # ---- quotation requests: the logged-in user's own
+  output$myrq_tbl <- renderDT({ u <- user(); req(u); d <- rv$requests[rv$requests$username == u$username, , drop = FALSE]
+    dt(d[order(d$request_no, decreasing = TRUE), c("request_no", "submitted_at", "service", "description", "timeframe", "status")]) })
+
   observeEvent(input$logout, user(NULL))
   observeEvent(input$refresh, { load_all(); showNotification("Data refreshed.") })
 
@@ -168,8 +285,9 @@ server <- function(input, output, session) {
   output$dash <- renderUI({
     req(is_dir()); j <- rv$jobs; d <- rv$documents; inv <- d[d$type == "invoice" & d$status != "Cancelled", ]
     paid <- sum(num(rv$receipts$amount)); billed <- sum(num(inv$total))
-    box <- function(t, v, cls = "") div(class = "col-md-3 col-6", div(class = paste("kpi", cls), div(class = "kpi-v", v), div(class = "kpi-t", t)))
+    box <- function(t, v, cls = "") div(class = "col-lg col-md-4 col-6", div(class = paste("kpi", cls), div(class = "kpi-v", v), div(class = "kpi-t", t)))
     tagList(div(class = "row g-3 mb-3",
+      box("New quotation requests", sum(rv$requests$status == "New"), "amber"),
       box("Open jobs", sum(!j$status %in% c("Paid", "Cancelled"))),
       box("Completed, not yet invoiced", sum(j$status %in% c("Completed", "Client signed off")), "amber"),
       box("Total invoiced (KES)", kes(billed)), box("Outstanding (KES)", kes(billed - paid), "amber")),
@@ -337,16 +455,29 @@ server <- function(input, output, session) {
   observeEvent(input$set_save, { req(need_dir())
     change("settings", function(d) { for (k in names(SET_LABELS)) { v <- input[[paste0("set_", k)]]; if (!is.null(v)) d$value[d$key == k] <- trimws(v) }; d })
     output$set_msg <- renderText("Settings saved. New documents will use them.") })
-  users_view <- reactive(rv$users[, c("username", "name", "role", "client", "active")])
-  output$us_tbl <- renderDT({ req(is_dir()); datatable(users_view(), selection = "single", rownames = FALSE, options = list(dom = "t")) })
+  users_view <- reactive({ u <- rv$users[, c("username", "name", "role", "client", "email", "phone", "company", "active")]   # never the password hash
+    u$role <- ifelse(u$role %in% names(ROLE_LABELS), unname(ROLE_LABELS[u$role]), u$role); u })
+  output$us_tbl <- renderDT({ req(is_dir()); datatable(users_view(), selection = "single", rownames = FALSE, options = list(dom = "tp", pageLength = 8, scrollX = TRUE)) })
   output$us_client_ui <- renderUI(sel_in("us_client", "Client (for client role)", c("", rv$clients$name)))
-  observeEvent(input$us_add, { req(need_dir()); un <- tolower(trimws(input$us_user)); pw <- input$us_pw
-    if (!nzchar(un) || nchar(pw) < 8) return(output$us_msg <- renderText("Enter a username and a password of at least 8 characters."))
-    if (input$us_role == "client" && !nzchar(input$us_client %||% "")) return(output$us_msg <- renderText("Choose which client this login belongs to."))
-    r <- row_df("users", username = un, name = input$us_name %||% un, role = input$us_role, client = if (input$us_role == "client") input$us_client else "",
-                password_hash = sodium::password_store(pw), active = "Yes")
-    change("users", function(d) if (un %in% d$username) { d[d$username == un, ] <- r; d } else rbind(d, r))
-    updateTextInput(session, "us_pw", value = ""); output$us_msg <- renderText(paste("Saved user", un)) })
+  observeEvent(input$us_tbl_rows_selected, { req(is_dir()); v <- sel("us_tbl", users_view()); req(v); u <- rv$users[rv$users$username == v$username, ]
+    updateTextInput(session, "us_user", value = u$username); updateTextInput(session, "us_name", value = u$name)
+    updateSelectInput(session, "us_role", selected = u$role); updateSelectInput(session, "us_client", selected = u$client) })
+  observeEvent(input$us_add, { req(need_dir()); un <- tolower(trimws(input$us_user)); pw <- input$us_pw %||% ""; role <- input$us_role
+    msg <- function(m) { output$us_msg <- renderText(m); NULL }
+    exists <- un %in% db_read("users")$username
+    if (!nzchar(un)) return(msg("Enter a username."))
+    if (!exists && nchar(pw) < 8) return(msg("A new user needs a password of at least 8 characters."))
+    if (nzchar(pw) && nchar(pw) < 8) return(msg("The password must be at least 8 characters."))
+    if (!role %in% names(ROLE_LABELS)) return(msg("Choose a role."))
+    if (role == "client" && !nzchar(input$us_client %||% "")) return(msg("Choose which client this login belongs to."))
+    if (un == user()$username && role != "director") return(msg("You cannot remove your own administrator role."))
+    cl <- if (role == "client") input$us_client else ""; nm <- clip(input$us_name, 80)
+    change("users", function(d) {
+      if (un %in% d$username) { i <- d$username == un; d$role[i] <- role; d$client[i] <- cl
+        if (nzchar(nm)) d$name[i] <- nm; if (nzchar(pw)) d$password_hash[i] <- sodium::password_store(pw); d }
+      else rbind(d, row_df("users", username = un, name = nm %||% un, role = role, client = cl, password_hash = sodium::password_store(pw),
+                           active = "Yes", created_at = now_str())) })
+    updateTextInput(session, "us_pw", value = ""); msg(paste(if (exists) "Updated user" else "Added user", un)) })
   observeEvent(input$us_toggle, { req(need_dir()); u <- sel("us_tbl", users_view()); if (is.null(u)) return()
     if (u$username == user()$username) return(output$us_msg <- renderText("You cannot deactivate your own account."))
     change("users", function(d) { i <- d$username == u$username; d$active[i] <- if (d$active[i] == "Yes") "No" else "Yes"; d }) })

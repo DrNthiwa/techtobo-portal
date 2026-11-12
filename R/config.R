@@ -29,11 +29,22 @@ QTN_STATUS <- c("Draft", "Sent", "Accepted", "Declined")
 INV_STATUS <- c("Unpaid", "Part paid", "Paid", "Cancelled")
 CATEGORIES <- c("Labour", "Materials", "Equipment", "Other")
 PAY_METHODS <- c("Bank transfer", "M-Pesa", "Cheque", "Cash")
+REQ_STATUS <- c("New", "Contacted", "Quoted", "Closed")
+
+# Clients shown in the "Our Clients" section of the public site.
+# To add one, add a line. If a logo file exists in www/ at the given path it is shown;
+# otherwise the client's name is shown as text.
+PUBLIC_CLIENTS <- list(
+  list(name = "Jalisa Limited", logo = "clients/jalisa-limited.png")
+)
+
+ROLE_LABELS <- c(director = "Administrator", client = "Client", user = "User")
 
 # One tab (Google Sheet) or one CSV file (local) per table
 SCHEMA <- list(
   settings  = c("key", "value"),
-  users     = c("username", "name", "role", "client", "password_hash", "active"),
+  users     = c("username", "name", "role", "client", "password_hash", "active",
+                "email", "phone", "company", "created_at"),
   clients   = c("name", "address", "kra_pin", "contact_person", "phone", "email"),
   jobs      = c("job_no", "date_requested", "client", "requested_by", "site", "service",
                 "description", "status", "start_date", "completion_date", "labour_cost",
@@ -44,7 +55,9 @@ SCHEMA <- list(
   lines     = c("doc_no", "line", "description", "detail", "category", "qty", "unit",
                 "unit_price", "amount"),
   receipts  = c("receipt_no", "date", "invoice_no", "client", "amount", "method",
-                "reference", "received_by", "created_at")
+                "reference", "received_by", "created_at"),
+  requests  = c("request_no", "submitted_at", "name", "company", "email", "phone", "service",
+                "description", "timeframe", "status", "username", "admin_notes")
 )
 
 DEFAULT_SETTINGS <- c(
@@ -66,6 +79,10 @@ nice_date <- function(s) {
   if (length(a) == 1 && (is.na(a) || (is.character(a) && a == ""))) return(b)
   a
 }
+
+valid_email <- function(x) grepl("^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]{2,}$", x)
+now_str <- function() format(Sys.time(), "%Y-%m-%d %H:%M", tz = "Africa/Nairobi")
+clip <- function(x, n) substr(trimws(x %||% ""), 1, n)
 
 # Next number in a series, e.g. INV-2026-003
 next_no <- function(prefix, existing, date = Sys.Date()) {
